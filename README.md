@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# get.isworking.dev
 
-## Getting Started
+Permanent, on-chain `name.isworking.eth` ENS names for **$0.99 one-time + gas**. Wallet-only: no
+email, no accounts, no database. Open source and open to everyone.
 
-First, run the development server:
+**→ Setup, local testing and production deployment: [docs/SETUP.md](docs/SETUP.md)**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## How it works
+
+```
+buyer wallet ── registerWithETH / registerWithToken ──▶ IsWorkingRegistrar ──▶ payment → isworking.eth wallet
+                                                              └──────────────▶ ENS NameWrapper: name minted to buyer
+                      (one transaction: pay and mint together, or nothing happens)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **[`IsWorkingRegistrar`](contracts/src/IsWorkingRegistrar.sol)** is the whole backend's state. It:
+  - takes ETH (priced with Chainlink ETH/USD) or USDT/USDC/DAI, forwards the payment to the treasury
+    in the same transaction, and mints;
+  - stores the price, accepted tokens, coupons (as hashes), reserved names, revocation locks, Devcon
+    claims, sales and an off-chain policy blob;
+  - revokes names and refunds the payer pro-rata in one call.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+  It never holds funds, and it can only create or revoke isworking.eth subnames, never move or change
+  isworking.eth. Its NameWrapper rights come from the owner's `setApprovalForAll`.
+- **Names** are wrapped subnames with no fuses burned: permanent, usable as primary names, and
+  revocable for abuse (revoking also clears the resolver, so the name stops resolving at once).
+- **Discounts** are EIP-712 vouchers signed by the app's relayer and bound to one name and one wallet,
+  so a coupon code seen in the mempool is useless to anyone else.
+  - **Coupons:** % off; buyers still pay gas.
+  - **Sponsored** coupons and **Devcon 8** tickets: free, with the relayer sending the mint and
+    paying the gas. Each Devcon ticket is a single-use `DEVCON8_…` coupon, one per wallet, valid until
+    Devcon ends. The contract enforces all of this.
+- **The server** (Next.js API routes on Vercel) is stateless. It reads the contract, checks Devcon
+  tickets (the Apple Wallet signature up to Apple's root, Google Wallet links against Google's
+  published keys), signs vouchers and relays sponsored claims.
+- **Admin** (`/admin`) talks to the contract directly from the isworking.eth wallet: setup (deploy +
+  approve), sales, coupons, revoke & refund, locks, reserved names, Devcon and settings.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Stack
 
-## Learn More
+Solidity + OpenZeppelin + Foundry · Next.js 16 · Reown AppKit + wagmi + viem · Tailwind CSS 4 · Bun.
 
-To learn more about Next.js, take a look at the following resources:
+## Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+bun install
+bun run dev                 # app on http://localhost:3000
+bun run fork                # local Ethereum mainnet fork (anvil) on :8545
+bun run fork:setup -- 0x…   # deploy + approve the registrar on the fork; your wallet becomes admin
+bun run contracts:test      # contract tests (mainnet fork)
+bun run contracts:export    # refresh the app's ABI/bytecode after changing the contract
+bun run build               # production build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Questions: [raj@isworking.dev](mailto:raj@isworking.dev)

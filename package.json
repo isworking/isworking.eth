@@ -6,12 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fork": "anvil --fork-url ${FORK_URL:-https://ethereum-rpc.publicnode.com} --port 8545 --chain-id 1",
+    "fork:setup": "bun scripts/fork-setup.mjs",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test -vv",
+    "contracts:export": "bun scripts/export-artifact.mjs"
   },
   "dependencies": {
+    "@reown/appkit": "^1.8.24",
+    "@reown/appkit-adapter-wagmi": "^1.8.24",
+    "@tanstack/react-query": "^5.104.4",
+    "asn1js": "^3.1.0",
+    "fflate": "^0.8.3",
+    "motion": "^14.4.0",
     "next": "16.4.2",
+    "pkijs": "^3.4.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "viem": "^2.57.7",
+    "wagmi": "^3.7.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -22,5 +37,8 @@
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@coinbase/cdp-sdk": "1.52.0"
   }
 }
